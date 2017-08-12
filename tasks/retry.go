@@ -1,24 +1,19 @@
 package tasks
 
 import (
+	"fmt"
 	"time"
 )
 
-const (
-	// Success means operation was successful, according to you
-	Success = iota
-	// PolicyViolation means you told me not to try any more times
-	PolicyViolation = iota
-	// Cancelled means you cancelled
-	Cancelled = iota
-)
+var MaxRetryReachedError = fmt.Errorf("Maximum number of retry reached")
+var TaskCancelledError = fmt.Errorf("Task is cancelled")
 
 // RetryPolicy => given the number of iteration already tried,
 // determine whether more retry is needed and for how long
-type RetryPolicy func(int) (bool, time.Duration)
+type RetryPolicy func(int) (time.Duration, error)
 
 // CancellationToken => send any value to signify cancellation
-type CancellationToken chan int
+type CancellationToken chan error
 
 // NewCancellationToken makes things look more neat, you can use the raw type if you want
 func NewCancellationToken() CancellationToken {
@@ -27,45 +22,47 @@ func NewCancellationToken() CancellationToken {
 
 // Cancel function is also here just to make things look more neat
 func (c CancellationToken) Cancel() {
-	c <- 1
+	c <- TaskCancelledError
 }
 
 // FixedDuration is the basic retry policy where you always
 // wait for the same amount of time for a fix number of times
 func FixedDuration(retryPeriod time.Duration, maxRetry int) RetryPolicy {
-	return func(itr int) (bool, time.Duration) {
-		return itr < maxRetry, retryPeriod
+	return func(itr int) (time.Duration, error) {
+		var err error
+		if itr >= maxRetry {
+			err = MaxRetryReachedError
+		}
+		return retryPeriod, err
 	}
 }
 
 // RetryOperation help you make your code look cleaner but I am not here
 // to protect you from infinite loops
-func RetryOperation(operation func() bool, retryPolicy RetryPolicy, token CancellationToken) int {
+func RetryOperation(operation func() bool, retryPolicy RetryPolicy, token CancellationToken) error {
 	count := 0
 	for {
 		success := operation()
 		if success {
-			return Success
+			return nil
 		}
 		count++
-		shouldWait, duration := retryPolicy(count)
-		if shouldWait {
-			if Wait(duration, token) == Cancelled {
-				return Cancelled
-			}
-			// else keep trying
-		} else {
-			return PolicyViolation
+		duration, policyViolation := retryPolicy(count)
+		if policyViolation != nil {
+			return policyViolation
+		}
+		if err := Wait(duration, token); err != nil {
+			return err
 		}
 	}
 }
 
 // Wait for a specific amount of time, but cancel any time
-func Wait(duration time.Duration, token CancellationToken) int {
+func Wait(duration time.Duration, token CancellationToken) error {
 	select {
 	case <-time.After(duration):
-		return Success
-	case <-token:
-		return Cancelled
+		return nil
+	case err := <-token:
+		return err
 	}
 }

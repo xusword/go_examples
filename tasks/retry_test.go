@@ -13,7 +13,7 @@ func TestRetry(t *testing.T) {
 		useToken              bool
 		ticksToSuccess        int
 		expectedTicks         int
-		expectedResult        int
+		expectedResult        error
 		expectedElapsedSecond int
 	}{
 		// no token, run all 3 iterations
@@ -22,7 +22,7 @@ func TestRetry(t *testing.T) {
 			useToken:              false,
 			ticksToSuccess:        -1,
 			expectedTicks:         3,
-			expectedResult:        PolicyViolation,
+			expectedResult:        MaxRetryReachedError,
 			expectedElapsedSecond: 2,
 		},
 		// run all 3 iterations, token never cancelled
@@ -31,7 +31,7 @@ func TestRetry(t *testing.T) {
 			useToken:              true,
 			ticksToSuccess:        -1,
 			expectedTicks:         3,
-			expectedResult:        PolicyViolation,
+			expectedResult:        MaxRetryReachedError,
 			expectedElapsedSecond: 2,
 		},
 		// cancel before first iteration succeed
@@ -40,7 +40,7 @@ func TestRetry(t *testing.T) {
 			useToken:              true,
 			ticksToSuccess:        1,
 			expectedTicks:         1,
-			expectedResult:        Success,
+			expectedResult:        nil,
 			expectedElapsedSecond: 0,
 		},
 		// cancel before first iteration failed
@@ -49,7 +49,7 @@ func TestRetry(t *testing.T) {
 			useToken:              true,
 			ticksToSuccess:        1,
 			expectedTicks:         1,
-			expectedResult:        Success,
+			expectedResult:        nil,
 			expectedElapsedSecond: 0,
 		},
 		// cancel right after first iteration succeed
@@ -58,7 +58,7 @@ func TestRetry(t *testing.T) {
 			useToken:              true,
 			ticksToSuccess:        1,
 			expectedTicks:         1,
-			expectedResult:        Success,
+			expectedResult:        nil,
 			expectedElapsedSecond: 0,
 		},
 		// cancel before the 3rd operation which was supposed to succeed
@@ -67,7 +67,7 @@ func TestRetry(t *testing.T) {
 			useToken:              true,
 			ticksToSuccess:        3,
 			expectedTicks:         2,
-			expectedResult:        Cancelled,
+			expectedResult:        TaskCancelledError,
 			expectedElapsedSecond: 1,
 		},
 		// retry 2 times, passed, cancel after
@@ -76,7 +76,7 @@ func TestRetry(t *testing.T) {
 			useToken:              true,
 			ticksToSuccess:        2,
 			expectedTicks:         2,
-			expectedResult:        Success,
+			expectedResult:        nil,
 			expectedElapsedSecond: 1,
 		},
 	}
@@ -104,7 +104,7 @@ func TestRetry(t *testing.T) {
 	}
 }
 
-func assertEquals(t *testing.T, index int, msg string, expected int, actual int) {
+func assertEquals(t *testing.T, index int, msg string, expected interface{}, actual interface{}) {
 	if expected != actual {
 		t.Errorf("%d:%s expected: %d; actual %d\n", index, msg, expected, actual)
 		t.Fail()
