@@ -1,8 +1,6 @@
 package tasks
 
 import (
-	"fmt"
-	"os"
 	"testing"
 	"time"
 )
@@ -101,16 +99,14 @@ func TestRetry(t *testing.T) {
 		}, retryPolicy, token)
 		elapsed := int(time.Now().Sub(start) / time.Second)
 		assertEquals(t, index, "ticks", tc.expectedTicks, ticks)
-		fmt.Println("Asserting results")
 		assertEquals(t, index, "result", tc.expectedResult, result)
-		fmt.Println("Asserting times")
 		assertEquals(t, index, "time", tc.expectedElapsedSecond, elapsed)
 	}
 }
 
 func assertEquals(t *testing.T, index int, msg string, expected int, actual int) {
 	if expected != actual {
-		fmt.Fprintf(os.Stderr, "%d:%s expected: %d; actual %d\n", index, msg, expected, actual)
+		t.Errorf("%d:%s expected: %d; actual %d\n", index, msg, expected, actual)
 		t.Fail()
 	}
 }
