@@ -5,12 +5,12 @@ import (
 )
 
 const (
-	// OperationSuccess means operation was successful, according to you
-	OperationSuccess = iota
+	// Success means operation was successful, according to you
+	Success = iota
 	// PolicyViolation means you told me not to try any more times
 	PolicyViolation = iota
-	// UserCancelled means you cancelled
-	UserCancelled = iota
+	// Cancelled means you cancelled
+	Cancelled = iota
 )
 
 // RetryPolicy => given the number of iteration already tried,
@@ -45,18 +45,27 @@ func RetryOperation(operation func() bool, retryPolicy RetryPolicy, token Cancel
 	for {
 		success := operation()
 		if success {
-			return OperationSuccess
+			return Success
 		}
 		count++
-		shouldWait, waitDuration := retryPolicy(count)
+		shouldWait, duration := retryPolicy(count)
 		if shouldWait {
-			select {
-			case <-time.After(waitDuration):
-			case <-token:
-				return UserCancelled
+			if Wait(duration, token) == Cancelled {
+				return Cancelled
 			}
+			// else keep trying
 		} else {
 			return PolicyViolation
 		}
+	}
+}
+
+// Wait for a specific amount of time, but cancel any time
+func Wait(duration time.Duration, token CancellationToken) int {
+	select {
+	case <-time.After(duration):
+		return Success
+	case <-token:
+		return Cancelled
 	}
 }

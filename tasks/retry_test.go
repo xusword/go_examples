@@ -40,7 +40,7 @@ func TestRetry(t *testing.T) {
 			useToken:              true,
 			ticksToSuccess:        1,
 			expectedTicks:         1,
-			expectedResult:        OperationSuccess,
+			expectedResult:        Success,
 			expectedElapsedSecond: 0,
 		},
 		// cancel before first iteration failed
@@ -49,7 +49,7 @@ func TestRetry(t *testing.T) {
 			useToken:              true,
 			ticksToSuccess:        1,
 			expectedTicks:         1,
-			expectedResult:        OperationSuccess,
+			expectedResult:        Success,
 			expectedElapsedSecond: 0,
 		},
 		// cancel right after first iteration succeed
@@ -58,7 +58,7 @@ func TestRetry(t *testing.T) {
 			useToken:              true,
 			ticksToSuccess:        1,
 			expectedTicks:         1,
-			expectedResult:        OperationSuccess,
+			expectedResult:        Success,
 			expectedElapsedSecond: 0,
 		},
 		// cancel before the 3rd operation which was supposed to succeed
@@ -67,7 +67,7 @@ func TestRetry(t *testing.T) {
 			useToken:              true,
 			ticksToSuccess:        3,
 			expectedTicks:         2,
-			expectedResult:        UserCancelled,
+			expectedResult:        Cancelled,
 			expectedElapsedSecond: 1,
 		},
 		// retry 2 times, passed, cancel after
@@ -76,7 +76,7 @@ func TestRetry(t *testing.T) {
 			useToken:              true,
 			ticksToSuccess:        2,
 			expectedTicks:         2,
-			expectedResult:        OperationSuccess,
+			expectedResult:        Success,
 			expectedElapsedSecond: 1,
 		},
 	}
