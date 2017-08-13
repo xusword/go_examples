@@ -1,13 +1,13 @@
 package tasks
 
 import (
+	"fmt"
 	"testing"
 	"time"
 )
 
 // Hey, I am not here to test every cases
 func TestRetry(t *testing.T) {
-	retryPolicy := FixedDuration(time.Duration(1)*time.Second, 3)
 	testCase := []struct {
 		durationCancel        time.Duration
 		useToken              bool
@@ -83,6 +83,7 @@ func TestRetry(t *testing.T) {
 
 	for index, tc := range testCase {
 		ticks := 0
+		retryPolicy := FixedDuration(time.Duration(1)*time.Second, 3)
 		var token CancellationToken
 		if tc.useToken {
 			token = NewCancellationToken()
@@ -93,9 +94,12 @@ func TestRetry(t *testing.T) {
 		}
 		time.Sleep(100)
 		start := time.Now()
-		result := RetryOperation(func() bool {
+		result := RetryOperation(func() error {
 			ticks++
-			return ticks == tc.ticksToSuccess
+			if ticks == tc.ticksToSuccess {
+				return nil
+			}
+			return fmt.Errorf("Some error")
 		}, retryPolicy, token)
 		elapsed := int(time.Now().Sub(start) / time.Second)
 		assertEquals(t, index, "ticks", tc.expectedTicks, ticks)
