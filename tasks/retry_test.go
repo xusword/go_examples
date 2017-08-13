@@ -22,7 +22,7 @@ func TestRetry(t *testing.T) {
 			useToken:              false,
 			ticksToSuccess:        -1,
 			expectedTicks:         3,
-			expectedResult:        MaxRetryReachedError,
+			expectedResult:        ErrorMaxRetryReached,
 			expectedElapsedSecond: 2,
 		},
 		// run all 3 iterations, token never cancelled
@@ -31,7 +31,7 @@ func TestRetry(t *testing.T) {
 			useToken:              true,
 			ticksToSuccess:        -1,
 			expectedTicks:         3,
-			expectedResult:        MaxRetryReachedError,
+			expectedResult:        ErrorMaxRetryReached,
 			expectedElapsedSecond: 2,
 		},
 		// cancel before first iteration succeed
@@ -67,7 +67,7 @@ func TestRetry(t *testing.T) {
 			useToken:              true,
 			ticksToSuccess:        3,
 			expectedTicks:         2,
-			expectedResult:        TaskCancelledError,
+			expectedResult:        ErrorTaskCancelled,
 			expectedElapsedSecond: 1,
 		},
 		// retry 2 times, passed, cancel after
