@@ -8,6 +8,7 @@ import (
 
 // Hey, I am not here to test every cases
 func TestRetry(t *testing.T) {
+	retryPolicy := FixedDuration(time.Duration(1)*time.Second, 3)
 	testCase := []struct {
 		durationCancel        time.Duration
 		useToken              bool
@@ -83,7 +84,6 @@ func TestRetry(t *testing.T) {
 
 	for index, tc := range testCase {
 		ticks := 0
-		retryPolicy := FixedDuration(time.Duration(1)*time.Second, 3)
 		var token CancellationToken
 		if tc.useToken {
 			token = NewCancellationToken()

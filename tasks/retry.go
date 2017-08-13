@@ -13,7 +13,7 @@ var ErrorTaskCancelled = fmt.Errorf("Task is cancelled")
 
 // RetryPolicy => given the number of iteration already tried,
 // determine whether more retry is needed and for how long
-type RetryPolicy func() (time.Duration, error)
+type RetryPolicy func(int) (time.Duration, error)
 
 // CancellationToken => Technically any value (include nil) can be sent
 // to the channel but just don't. Use Cancel() instead because nil error
@@ -32,13 +32,9 @@ func (c CancellationToken) Cancel() {
 
 // FixedDuration is the basic retry policy where you always
 // wait for the same amount of time for a fix number of times
-// the closure returned by this method is not meant for reuse
-// by different invokations of RetryOperation
 func FixedDuration(retryPeriod time.Duration, maxRetry int) RetryPolicy {
-	count := 0
-	return func() (time.Duration, error) {
+	return func(count int) (time.Duration, error) {
 		var err error
-		count++
 		if count >= maxRetry {
 			err = ErrorMaxRetryReached
 		}
@@ -49,12 +45,14 @@ func FixedDuration(retryPeriod time.Duration, maxRetry int) RetryPolicy {
 // RetryOperation help you make your code look cleaner but I am not here
 // to protect you from infinite loops
 func RetryOperation(operation func() error, retryPolicy RetryPolicy, token CancellationToken) error {
+	count := 0
 	for {
 		err := operation()
 		if err == nil {
 			return nil
 		}
-		duration, policyViolation := retryPolicy()
+		count++
+		duration, policyViolation := retryPolicy(count)
 		if policyViolation != nil {
 			return policyViolation
 		}
