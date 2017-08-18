@@ -8,7 +8,9 @@ import (
 
 // Hey, I am not here to test every cases
 func TestRetry(t *testing.T) {
-	retryPolicy := FixedDuration(time.Duration(1)*time.Second, 3)
+	maxRetry := 3
+	retryPolicy := LinearRetry(time.Duration(1)*time.Second, 3)
+	errorMaxRetryReached := ErrorMaxRetryReached(maxRetry)
 	testCase := []struct {
 		durationCancel        time.Duration
 		useToken              bool
@@ -23,7 +25,7 @@ func TestRetry(t *testing.T) {
 			useToken:              false,
 			ticksToSuccess:        -1,
 			expectedTicks:         3,
-			expectedResult:        ErrorMaxRetryReached,
+			expectedResult:        errorMaxRetryReached,
 			expectedElapsedSecond: 2,
 		},
 		// run all 3 iterations, token never cancelled
@@ -32,7 +34,7 @@ func TestRetry(t *testing.T) {
 			useToken:              true,
 			ticksToSuccess:        -1,
 			expectedTicks:         3,
-			expectedResult:        ErrorMaxRetryReached,
+			expectedResult:        errorMaxRetryReached,
 			expectedElapsedSecond: 2,
 		},
 		// cancel before first iteration succeed
@@ -110,6 +112,20 @@ func TestRetry(t *testing.T) {
 
 func assertEquals(t *testing.T, index int, msg string, expected interface{}, actual interface{}) {
 	if expected != actual {
+		if expectedAsString, isString := expected.(fmt.Stringer); isString {
+			if actualAsString, isString := actual.(fmt.Stringer); isString {
+				if expectedAsString == actualAsString {
+					return
+				}
+			}
+		}
+		if expectedError, isError := expected.(error); isError {
+			if actualError, isError := actual.(error); isError {
+				if expectedError.Error() == actualError.Error() {
+					return
+				}
+			}
+		}
 		t.Errorf("%d:%s expected: %d; actual %d\n", index, msg, expected, actual)
 		t.Fail()
 	}
