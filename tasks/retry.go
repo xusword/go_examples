@@ -38,7 +38,7 @@ type fixedDurationRetryPolicy struct {
 	maxRetry    int
 }
 
-func (r *fixedDurationRetryPolicy) GetDelay(itrNum int) (time.Duration, error) {
+func (r *fixedDurationRetryPolicy) GetDelay(itrNum int, lastErr error) (time.Duration, error) {
 	var err error
 	if itrNum >= r.maxRetry {
 		err = ErrorMaxRetryReached(r.maxRetry)
@@ -58,11 +58,11 @@ type timeoutRetryPolicy struct {
 	endTime     time.Time
 }
 
-func (r *timeoutRetryPolicy) GetDelay(itrNum int) (time.Duration, error) {
+func (r *timeoutRetryPolicy) GetDelay(itrNum int, lastErr error) (time.Duration, error) {
 	if time.Now().After(r.endTime) {
 		return time.Hour, ErrorRetryTimeout(r.maxDuration)
 	}
-	return r.retryPolicy.GetDelay(itrNum)
+	return r.retryPolicy.GetDelay(itrNum, lastErr)
 }
 
 // WithTimeout creates a policy that will expire maxDuration form now
@@ -80,7 +80,7 @@ func WithTimeout(maxDuration time.Duration, retryPolicy RetryPolicy) RetryPolicy
 // RetryPolicy => given the number of iteration already tried,
 // determine whether more retry is needed and for how long
 type RetryPolicy interface {
-	GetDelay(itrNum int) (time.Duration, error)
+	GetDelay(itrNum int, lastErr error) (time.Duration, error)
 }
 
 // RetryOperation help you make your code look cleaner but I am not here
@@ -93,7 +93,7 @@ func RetryOperation(operation func() error, retryPolicy RetryPolicy, token Cance
 			return nil
 		}
 		count++
-		duration, policyViolation := retryPolicy.GetDelay(count)
+		duration, policyViolation := retryPolicy.GetDelay(count, err)
 		if policyViolation != nil {
 			return policyViolation
 		}
