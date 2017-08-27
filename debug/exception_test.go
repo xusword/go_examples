@@ -5,8 +5,7 @@ import "fmt"
 
 // This is not a test
 func TestThrow(t *testing.T) {
-	exception := Problem().(*Exception)
-	fmt.Printf("%v\n", exception.String())
+	fmt.Printf("%s\n", Problem())
 }
 
 func Problem() error {

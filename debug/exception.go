@@ -13,7 +13,11 @@ type Exception struct {
 }
 
 func (e *Exception) Error() string {
-	return e.Message
+	stackJoined := strings.Join(e.StackTrace, "\n")
+	if e.Cause == nil {
+		return fmt.Sprintf("Error: %s\nStack Trace: %s", e.Message, stackJoined)
+	}
+	return fmt.Sprintf("Error: %s\nStack Trace: %s\nCaused by:\n%s", e.Message, stackJoined, e.Cause)
 }
 
 func Throw(cause error, msg string, args ...interface{}) *Exception {
@@ -24,19 +28,4 @@ func Throw(cause error, msg string, args ...interface{}) *Exception {
 		Cause:      cause,
 		StackTrace: fullStackLines[5:],
 	}
-}
-
-func (e *Exception) String() string {
-	stackJoined := strings.Join(e.StackTrace, "\n")
-	if e.Cause == nil {
-		return fmt.Sprintf("Error: %s\nStack Trace: %s", e.Message, stackJoined)
-	}
-	exception, ok := e.Cause.(*Exception)
-	var cause interface{}
-	if ok {
-		cause = exception.String()
-	} else {
-		cause = e.Cause
-	}
-	return fmt.Sprintf("Error: %s\nStack Trace: %s\nCaused by:\n%s", e.Message, stackJoined, cause)
 }
