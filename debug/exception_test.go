@@ -12,10 +12,10 @@ func Problem() error {
 	return Throw(Drill(), "Problem %s", "Meh")
 }
 
-func Drill() *Exception {
+func Drill() error {
 	return Throw(RootCause(), "Drill %s", "Yeah")
 }
 
-func RootCause() *Exception {
+func RootCause() error {
 	return Throw(nil, "RootCause %s", "Exception")
 }
