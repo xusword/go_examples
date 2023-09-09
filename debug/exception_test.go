@@ -1,7 +1,9 @@
 package debug
 
-import "testing"
-import "fmt"
+import (
+	"fmt"
+	"testing"
+)
 
 // This is not a test
 func TestThrow(t *testing.T) {

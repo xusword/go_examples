@@ -1,52 +1,63 @@
 package bufferedChan
 
 type BufferedChan[T interface{}] struct {
-	In  chan T
-	Out chan T
+	in  chan T
+	out chan T
 }
 
 func NewBufferedChan[T interface{}]() *BufferedChan[T] {
 	c := &BufferedChan[T]{
-		In:  make(chan T),
-		Out: make(chan T),
+		in:  make(chan T),
+		out: make(chan T),
 	}
 	go c.start()
 
 	return c
 }
 
+func (c *BufferedChan[T]) Push(val T) {
+	c.in <- val
+}
+
+func (c *BufferedChan[T]) NoMas() {
+	close(c.in)
+}
+
+func (c *BufferedChan[T]) Pull() (T, bool) {
+	v, ok := <-c.out
+	return v, ok
+}
+
 func (c *BufferedChan[T]) start() {
-	draining := false
 	buffer := []T{}
-	headChan := make(chan T)
-	for {
-		select {
-		case val, ok := <-c.In:
-			if ok {
-				select {
-				// if value came in when headChan is occupied, push to buffer
-				case head := <-headChan:
-					buffer = append(buffer, head)
-				default:
-					// otherwise move on
-				}
-				go func() { headChan <- val }()
-			} else {
-				draining = true
-			}
-		case c.Out <- <-headChan:
-			if len(buffer) > 0 {
-				head := buffer[0]
-				buffer = buffer[1:]
-				go func() {
-					headChan <- head
-				}()
-			} else {
-				if draining {
-					close(c.Out)
-					return
-				}
-			}
+	// out channel should not be hooked to our select statement if buffer is empty
+	out := func() chan T {
+		if len(buffer) == 0 {
+			return nil
+		} else {
+			return c.out
 		}
 	}
+	// head value doesn't matter when buffer is empty
+	head := func() T {
+		if len(buffer) == 0 {
+			var null T
+			return null
+		} else {
+			return buffer[0]
+		}
+	}
+	for len(buffer) > 0 || c.in != nil {
+		select {
+		case val, ok := <-c.in:
+			if ok {
+				buffer = append(buffer, val)
+			} else {
+				c.in = nil
+			}
+		case out() <- head():
+			buffer = buffer[1:]
+		}
+	}
+	close(c.out)
 }
