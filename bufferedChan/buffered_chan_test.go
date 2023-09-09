@@ -3,6 +3,8 @@ package bufferedChan
 import (
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestHappy(t *testing.T) {
@@ -11,55 +13,62 @@ func TestHappy(t *testing.T) {
 	c.Push(2)
 	c.Push(3)
 
-	one, ok := c.Pull()
-	assertOK(t, ok)
-	two, ok := c.Pull()
-	assertOK(t, ok)
-	three, ok := c.Pull()
-	assertOK(t, ok)
+	var val int
+	var ok bool
+
+	val, ok = c.Pull()
+	assert.True(t, ok)
+	assert.Equal(t, 1, val)
+
+	val, ok = c.Pull()
+	assert.True(t, ok)
+	assert.Equal(t, 2, val)
+
+	val, ok = c.Pull()
+	assert.True(t, ok)
+	assert.Equal(t, 3, val)
 
 	c.Push(4)
 	c.Push(5)
 
-	four, ok := c.Pull()
-	assertOK(t, ok)
+	val, ok = c.Pull()
+	assert.True(t, ok)
+	assert.Equal(t, 4, val)
 
 	c.Push(6)
 
-	five, ok := c.Pull()
-	assertOK(t, ok)
+	val, ok = c.Pull()
+	assert.True(t, ok)
+	assert.Equal(t, 5, val)
 
 	c.Push(7)
-	assertOK(t, ok)
 	c.Push(8)
-	assertOK(t, ok)
 
-	six, ok := c.Pull()
-	assertOK(t, ok)
+	val, ok = c.Pull()
+	assert.True(t, ok)
+	assert.Equal(t, 6, val)
 	c.NoMas()
 
-	seven, ok := c.Pull()
-	assertOK(t, ok)
-	eight, ok := c.Pull()
-	assertOK(t, ok)
+	val, ok = c.Pull()
+	assert.True(t, ok)
+	assert.Equal(t, 7, val)
 
-	t.Logf("%d %d %d %d %d %d %d %d", one, two, three, four, five, six, seven, eight)
+	val, ok = c.Pull()
+	assert.True(t, ok)
+	assert.Equal(t, 8, val)
+
+	_, ok = c.Pull()
+	assert.False(t, ok)
 }
 
 func TestBlock(t *testing.T) {
 	c := NewBufferedChan[int]()
 	go func() {
-		time.Sleep(3 * time.Second)
+		time.Sleep(10 * time.Microsecond)
 		c.Push(1)
 	}()
 	t.Logf("Heading into a block")
-	one, _ := c.Pull()
-
-	t.Logf("%d", one)
-}
-
-func assertOK(t *testing.T, ok bool) {
-	if !ok {
-		t.Fatalf("Not OK")
-	}
+	val, ok := c.Pull()
+	assert.True(t, ok)
+	assert.Equal(t, 1, val)
 }
