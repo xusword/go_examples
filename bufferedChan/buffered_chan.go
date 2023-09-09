@@ -1,11 +1,11 @@
 package bufferedChan
 
-type BufferedChan[T interface{}] struct {
+type BufferedChan[T any] struct {
 	in  chan T
 	out chan T
 }
 
-func NewBufferedChan[T interface{}]() *BufferedChan[T] {
+func NewBufferedChan[T any]() *BufferedChan[T] {
 	c := &BufferedChan[T]{
 		in:  make(chan T),
 		out: make(chan T),

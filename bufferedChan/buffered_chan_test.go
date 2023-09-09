@@ -63,12 +63,17 @@ func TestHappy(t *testing.T) {
 
 func TestBlock(t *testing.T) {
 	c := NewBufferedChan[int]()
+	timeline := make(chan string, 2)
 	go func() {
 		time.Sleep(10 * time.Microsecond)
+		timeline <- "pushing"
 		c.Push(1)
 	}()
-	t.Logf("Heading into a block")
+	// TODO: add logic to actually verify the block
+	timeline <- "pulling"
 	val, ok := c.Pull()
 	assert.True(t, ok)
 	assert.Equal(t, 1, val)
+	assert.Equal(t, "pulling", <-timeline)
+	assert.Equal(t, "pushing", <-timeline)
 }
