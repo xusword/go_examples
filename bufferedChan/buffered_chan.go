@@ -1,14 +1,18 @@
 package bufferedChan
 
+// credits: https://medium.com/capital-one-tech/building-an-unbounded-channel-in-go-789e175cd2cd
+
 type BufferedChan[T any] struct {
-	in  chan T
-	out chan T
+	in     chan T
+	out    chan T
+	buffer []T
 }
 
 func NewBufferedChan[T any]() *BufferedChan[T] {
 	c := &BufferedChan[T]{
-		in:  make(chan T),
-		out: make(chan T),
+		in:     make(chan T),
+		out:    make(chan T),
+		buffer: []T{},
 	}
 	go c.start()
 
@@ -28,35 +32,28 @@ func (c *BufferedChan[T]) Pull() (T, bool) {
 	return v, ok
 }
 
+func (c *BufferedChan[T]) receive(val T, ok bool) {
+	if ok {
+		c.buffer = append(c.buffer, val)
+	} else {
+		c.in = nil
+	}
+}
+
 func (c *BufferedChan[T]) start() {
-	buffer := []T{}
-	// out channel should not be hooked to our select statement if buffer is empty
-	out := func() chan T {
-		if len(buffer) == 0 {
-			return nil
+	for len(c.buffer) > 0 || c.in != nil {
+		if len(c.buffer) == 0 {
+			// if buffer empty you can only receive
+			val, ok := <-c.in
+			c.receive(val, ok)
 		} else {
-			return c.out
-		}
-	}
-	// head value doesn't matter when buffer is empty
-	head := func() T {
-		if len(buffer) == 0 {
-			var null T
-			return null
-		} else {
-			return buffer[0]
-		}
-	}
-	for len(buffer) > 0 || c.in != nil {
-		select {
-		case val, ok := <-c.in:
-			if ok {
-				buffer = append(buffer, val)
-			} else {
-				c.in = nil
+			// once buffer is not, we can receive or send
+			select {
+			case val, ok := <-c.in:
+				c.receive(val, ok)
+			case c.out <- c.buffer[0]:
+				c.buffer = c.buffer[1:]
 			}
-		case out() <- head():
-			buffer = buffer[1:]
 		}
 	}
 	close(c.out)
