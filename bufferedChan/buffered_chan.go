@@ -51,6 +51,10 @@ func (c *BufferedChan[T]) start() {
 			select {
 			case val, ok := <-c.in:
 				c.receive(val, ok)
+			// the referenced article used an outCh() function to make the lhs nil-able
+			// This is a very nice trick and would be nice to have if we have multiple
+			// case statements. However since we only 2 code paths I find having the
+			// if statement before select being more concise
 			case c.out <- c.buffer[0]:
 				c.buffer = c.buffer[1:]
 			}
